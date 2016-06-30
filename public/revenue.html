@@ -1,0 +1,161 @@
+<html>
+<head>
+   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
+  
+    
+ <script type="text/javascript">
+ var app = angular.module('myapp', []);
+
+app.controller('ExcelUploadCtrl', function ($scope, $http, $window) { 
+debugger;
+$scope.upload=function(jsondata){
+debugger;
+
+var data={
+  uid:"37823b60-3a2e-48d6-8115-956771acb3e3",
+  data:jsondata.data,
+  type:"revenuechart",
+  timestamp:getDateTime()
+  
+}
+
+var somedata=DeepTrim(data);
+
+ var res = $http.post('http://localhost:1515/api/uploadexcel',somedata);
+     res.success(function (data, status,  config) 
+       {
+     
+		alert('success');                           
+        });
+     res.error(function (data, status,  config) 
+       {
+	alert('failed'); 
+      });
+}
+
+
+$scope.test=function(){
+alert('Hi');
+}
+
+
+function DeepTrim(obj) {
+
+    for (var prop in obj) {
+        if (obj.hasOwnProperty(prop)) {
+            if (typeof obj[prop] == 'string') {
+                obj[prop] = obj[prop].trim();
+            } else if (typeof obj[prop] == 'object') {
+                DeepTrim(obj[prop]);
+            }
+        }
+    }
+  return obj;
+}
+
+function getDateTime() {
+    var d = new Date();
+    var year= d.getFullYear();
+    var month = d.getMonth();
+    var date = d.getDate();
+    var hours=d.getHours();
+    var minutes=d.getMinutes();
+    var seconds=d.getSeconds();
+    var dateTime= year+"-"+month+"-"+date+":"+
+    hours+":"+minutes+":"+seconds;
+  return dateTime;
+}
+
+
+});
+
+ </script>
+</head>
+<body>
+<div id="myctrl"  ng-app="myapp" ng-controller="ExcelUploadCtrl">
+   <h1>Excel Poc</h1>
+</div>
+<div id="output"></div>
+<div >
+<p><input type="file" name="xlfile" id="xlf" /> ... or click here to select a file</p>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.8.0/xlsx.min.js"></script>
+
+
+    <script type="text/javascript">
+       var X = XLSX;
+        var XW = {
+            /* worker message */
+            msg: 'xlsx',
+            /* worker scripts */
+            rABS: './xlsxworker2.js',
+            norABS: './xlsxworker1.js',
+            noxfer: './xlsxworker.js'
+        };
+
+
+        var xlf = document.getElementById('xlf');
+        function fixdata(data) {
+         debugger;
+            var o = "", l = 0, w = 10240;
+            for (; l < data.byteLength / w; ++l) o += String.fromCharCode.apply(null, new Uint8Array(data.slice(l * w, l * w + w)));
+            o += String.fromCharCode.apply(null, new Uint8Array(data.slice(l * w)));
+            return o;
+        }
+
+
+        function to_json(workbook) {
+            var result = {};
+            workbook.SheetNames.forEach(function (sheetName) {
+                var roa = X.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                if (roa.length > 0) {
+                    result[sheetName] = roa;
+                }
+            });
+            return result;
+        }
+
+        function process_wb(wb) {
+	 
+          var output = "";
+	  output = JSON.stringify(to_json(wb), 2, 2);
+          output=JSON.parse(output);
+          angular.element(document.getElementById('myctrl')).scope().upload(output);
+
+	  //document.getElementById('output').innerHTML = output;
+   
+      }
+    function handleFile(e) {
+
+        var use_worker = typeof Worker !== 'undefined';
+        rABS = false;
+        use_worker = true;
+        var files = e.target.files;
+        var f = files[0];
+        {
+            var reader = new FileReader();
+            var name = f.name;
+            reader.onload = function (e) {
+                if (typeof console !== 'undefined') console.log("onload", new Date(), rABS, use_worker);
+                var data = e.target.result;
+                var arr = fixdata(data);
+                var workbook = XLSX.read(btoa(arr), { type: 'base64' });
+                process_wb(workbook);
+            };
+            if (rABS) reader.readAsBinaryString(f);
+            else reader.readAsArrayBuffer(f);
+        }
+    }
+
+    xlf.addEventListener('change', handleFile, false);
+
+
+
+
+</script>
+
+</div>
+
+</body>
+</html>
